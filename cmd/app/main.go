@@ -61,7 +61,7 @@ func main() {
 			if len(text) == 0 {
 				continue
 			}
-			part := strings.Fields(text)
+			part := cleanInput(text)
 			command := part[0]
 			if cmd, found := commandsMap[command]; found {
 				if command == "explore" && len(part) > 1 {
@@ -75,13 +75,27 @@ func main() {
 	}
 }
 
+func cleanInput(input string) []string {
+	input = strings.ToLower(input)
+	inputArr := strings.Fields(input)
+	return inputArr
+}
+
 func mapLocation(config *Config) {
-	if config.Next == "" {
+	fetchAndDisplayLocations(config.Next, config)
+}
+
+func mapPreviousLocation(config *Config) {
+	fetchAndDisplayLocations(config.Previous, config)
+}
+
+func fetchAndDisplayLocations(url string, config *Config) {
+	if url == "" {
 		fmt.Println("No more locations available.")
 		return
 	}
 
-	locationResponse, err := httppokedex.GetLocation(config.Next, config.Cache)
+	locationResponse, err := httppokedex.GetLocation(url, config.Cache)
 	if err != nil {
 		fmt.Println("Error fetching locations:", err)
 		return
@@ -96,34 +110,12 @@ func mapLocation(config *Config) {
 	config.Previous = locationResponse.Previous
 }
 
-func mapPreviousLocation(config *Config) {
-	if config.Previous == "" {
-		fmt.Println("You're on the first page.")
-		return
-	}
-
-	locationResponse, err := httppokedex.GetLocation(config.Previous, config.Cache)
-	if err != nil {
-		fmt.Println("Error fetching previous locations:", err)
-		return
-	}
-
-	fmt.Println("Location Areas:")
-	for _, loc := range locationResponse.Results {
-		fmt.Println("-", loc.Name)
-	}
-
-	config.Next = locationResponse.Next
-	config.Previous = locationResponse.Previous
-}
-
 func explorePokemonLocation(config *Config) {
-	location := config.ExploreLocation
-	config.ExploreLocation = fmt.Sprintf("https://pokeapi.co/api/v2/location-area/%s", location)
+	config.ExploreLocation = fmt.Sprintf("https://pokeapi.co/api/v2/location-area/%s", config.ExploreLocation)
 	fmt.Println("url----->", config.ExploreLocation)
 	locationResponse, err := httppokedex.GetPokemonLocation(config.ExploreLocation)
 	if err != nil {
-		fmt.Println("Error fetching previous locations:", err)
+		fmt.Println("Error fetching locations of Pokemon:", err)
 		return
 	}
 
