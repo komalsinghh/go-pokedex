@@ -27,71 +27,54 @@ type Pokemon struct {
 }
 
 func GetLocation(url string, cache *Cache) (LocationResponse, error) {
-	if cacheData, found := cache.Get(url); found {
-		fmt.Println("!!!!!!!!!!!!!!!Cache Hit!!!!!!!!!!!!!!!!!!!:", url)
-		var locationResponse LocationResponse
-		err := json.Unmarshal(cacheData, &locationResponse)
-		if err != nil {
-			return LocationResponse{}, errors.New("error unmarshalling JSON response")
-		}
-		return locationResponse, nil
-	}
-	resp, err := http.Get(url)
-	if err != nil {
-		return LocationResponse{}, fmt.Errorf("error in retreiving data %v", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		fmt.Println(resp.StatusCode)
-		return LocationResponse{}, errors.New("received non-200 response")
-	}
-
-	data, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return LocationResponse{}, errors.New("error reading response body")
-	}
-
 	var locationResponse LocationResponse
-	err = json.Unmarshal(data, &locationResponse)
+	err := fetchAndCache(url, cache, &locationResponse)
 	if err != nil {
-		return LocationResponse{}, errors.New("error unmarshalling JSON response")
+		return LocationResponse{}, err
 	}
-
-	fmt.Println("!!!!!!!!!!!!!!!Cache Miss!!!!!!!!!!!!!!!!!!!:", url)
-	cache.Add(url, data)
-
 	return locationResponse, nil
 }
 
 func GetPokemonLocation(url string, cache *Cache) (PokemonEncounterResult, error) {
-	if cacheData, found := cache.Get(url); found {
-		fmt.Println("!!!!!!!!!!!!!!!Cache Hit!!!!!!!!!!!!!!!!!!!:", url)
-		var pokemonEncounterResult PokemonEncounterResult
-		err := json.Unmarshal(cacheData, &pokemonEncounterResult)
-		if err != nil {
-			return PokemonEncounterResult{}, errors.New("error unmarshalling JSON response")
-		}
-		return pokemonEncounterResult, nil
+	var pokemonEncounterResult PokemonEncounterResult
+	err := fetchAndCache(url, cache, &pokemonEncounterResult)
+	if err != nil {
+		return PokemonEncounterResult{}, err
 	}
+	return pokemonEncounterResult, nil
+}
+
+func fetchAndCache[T any](url string, cache *Cache, target *T) error {
+	if cacheData, found := cache.Get(url); found {
+		fmt.Println("!!!!!!!!!!!!!!! Cache Hit !!!!!!!!!!!!!!!!!!!:", url)
+		err := json.Unmarshal(cacheData, target)
+		if err != nil {
+			return errors.New("error unmarshalling cached data")
+		}
+		return nil
+	}
+
 	resp, err := http.Get(url)
 	if err != nil {
-		return PokemonEncounterResult{}, fmt.Errorf("error in retreiving data %v", err)
+		return fmt.Errorf("error retrieving data: %v", err)
 	}
 	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("received non-200 response: %d", resp.StatusCode)
+	}
+
 	data, err := io.ReadAll(resp.Body)
 	if err != nil {
-		return PokemonEncounterResult{}, errors.New("error reading response body")
+		return errors.New("error reading response body")
 	}
 
-	var location PokemonEncounterResult
-	err = json.Unmarshal(data, &location)
+	err = json.Unmarshal(data, target)
 	if err != nil {
-		return PokemonEncounterResult{}, errors.New("error unmarshalling JSON response")
+		return errors.New("error unmarshalling JSON response")
 	}
 
-	fmt.Println("!!!!!!!!!!!!!!!Cache Miss!!!!!!!!!!!!!!!!!!!:", url)
+	fmt.Println("!!!!!!!!!!!!!!! Cache Miss !!!!!!!!!!!!!!!!!!!:", url)
 	cache.Add(url, data)
-
-	return location, nil
+	return nil
 }
