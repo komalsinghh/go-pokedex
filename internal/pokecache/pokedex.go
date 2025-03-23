@@ -29,7 +29,12 @@ type Pokemon struct {
 func GetLocation(url string, cache *Cache) (LocationResponse, error) {
 	if cacheData, found := cache.Get(url); found {
 		fmt.Println("!!!!!!!!!!!!!!!Cache Hit!!!!!!!!!!!!!!!!!!!:", url)
-		return cacheData, nil
+		var locationResponse LocationResponse
+		err := json.Unmarshal(cacheData, &locationResponse)
+		if err != nil {
+			return LocationResponse{}, errors.New("error unmarshalling JSON response")
+		}
+		return locationResponse, nil
 	}
 	resp, err := http.Get(url)
 	if err != nil {
@@ -54,12 +59,21 @@ func GetLocation(url string, cache *Cache) (LocationResponse, error) {
 	}
 
 	fmt.Println("!!!!!!!!!!!!!!!Cache Miss!!!!!!!!!!!!!!!!!!!:", url)
-	cache.Add(url, locationResponse)
+	cache.Add(url, data)
 
 	return locationResponse, nil
 }
 
-func GetPokemonLocation(url string) (PokemonEncounterResult, error) {
+func GetPokemonLocation(url string, cache *Cache) (PokemonEncounterResult, error) {
+	if cacheData, found := cache.Get(url); found {
+		fmt.Println("!!!!!!!!!!!!!!!Cache Hit!!!!!!!!!!!!!!!!!!!:", url)
+		var pokemonEncounterResult PokemonEncounterResult
+		err := json.Unmarshal(cacheData, &pokemonEncounterResult)
+		if err != nil {
+			return PokemonEncounterResult{}, errors.New("error unmarshalling JSON response")
+		}
+		return pokemonEncounterResult, nil
+	}
 	resp, err := http.Get(url)
 	if err != nil {
 		return PokemonEncounterResult{}, fmt.Errorf("error in retreiving data %v", err)
@@ -75,6 +89,9 @@ func GetPokemonLocation(url string) (PokemonEncounterResult, error) {
 	if err != nil {
 		return PokemonEncounterResult{}, errors.New("error unmarshalling JSON response")
 	}
+
+	fmt.Println("!!!!!!!!!!!!!!!Cache Miss!!!!!!!!!!!!!!!!!!!:", url)
+	cache.Add(url, data)
 
 	return location, nil
 }

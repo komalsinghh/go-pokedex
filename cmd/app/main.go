@@ -113,7 +113,7 @@ func fetchAndDisplayLocations(url string, config *Config) {
 func explorePokemonLocation(config *Config) {
 	config.ExploreLocation = fmt.Sprintf("https://pokeapi.co/api/v2/location-area/%s", config.ExploreLocation)
 	fmt.Println("url----->", config.ExploreLocation)
-	locationResponse, err := httppokedex.GetPokemonLocation(config.ExploreLocation)
+	locationResponse, err := httppokedex.GetPokemonLocation(config.ExploreLocation, config.Cache)
 	if err != nil {
 		fmt.Println("Error fetching locations of Pokemon:", err)
 		return

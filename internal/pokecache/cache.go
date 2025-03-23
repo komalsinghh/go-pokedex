@@ -14,7 +14,7 @@ type Cache struct {
 
 type cacheEntry struct {
 	CreatedAt time.Time
-	Val       LocationResponse
+	Val       []byte
 }
 
 func NewCache(interval time.Duration) *Cache {
@@ -26,7 +26,7 @@ func NewCache(interval time.Duration) *Cache {
 	return cache
 }
 
-func (c *Cache) Add(key string, value LocationResponse) {
+func (c *Cache) Add(key string, value []byte) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	c.DataMap[key] = cacheEntry{
@@ -35,12 +35,12 @@ func (c *Cache) Add(key string, value LocationResponse) {
 	}
 }
 
-func (c *Cache) Get(key string) (LocationResponse, bool) {
+func (c *Cache) Get(key string) ([]byte, bool) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	data, exists := c.DataMap[key]
 	if !exists {
-		return LocationResponse{}, false
+		return []byte{}, false
 	}
 	return data.Val, true
 }
@@ -51,7 +51,7 @@ func (c *Cache) DeleteData(interval time.Duration) {
 		c.mu.Lock()
 		for key, value := range c.DataMap {
 			if time.Since(value.CreatedAt) > c.Interval {
-				fmt.Println("Deleting Data", c.DataMap)
+				fmt.Printf("Deleting Data %s", c.DataMap[key])
 				delete(c.DataMap, key)
 			}
 		}
