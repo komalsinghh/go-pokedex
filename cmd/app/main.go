@@ -6,15 +6,17 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
+	"strings"
 	"time"
 
 	httppokedex "github.com/komalsinghh/go-pokedex/internal/pokecache"
 )
 
 type Config struct {
-	Next     string
-	Previous string
-	Cache    *httppokedex.Cache
+	Next            string
+	Previous        string
+	Cache           *httppokedex.Cache
+	ExploreLocation string
 }
 
 type cliCommand struct {
@@ -48,8 +50,9 @@ func main() {
 			description: "Displays a help message",
 			callback:    commandHelp,
 		},
-		"map":  {"map", "Displays the next 20 locations", mapLocation},
-		"mapb": {"mapb", "Displays the previous 20 locations", mapPreviousLocation},
+		"map":     {"map", "Displays the next 20 locations", mapLocation},
+		"mapb":    {"mapb", "Displays the previous 20 locations", mapPreviousLocation},
+		"explore": {"explore", "Displays list of all the Pokémon located there", explorePokemonLocation},
 	}
 	for {
 		fmt.Print("Pokedex> ")
@@ -58,7 +61,12 @@ func main() {
 			if len(text) == 0 {
 				continue
 			}
-			if cmd, found := commandsMap[text]; found {
+			part := strings.Fields(text)
+			command := part[0]
+			if cmd, found := commandsMap[command]; found {
+				if command == "explore" && len(part) > 1 {
+					config.ExploreLocation = part[1]
+				}
 				cmd.callback(config)
 			} else {
 				fmt.Println("Unknown command. Type 'help' for available commands.")
@@ -107,6 +115,22 @@ func mapPreviousLocation(config *Config) {
 
 	config.Next = locationResponse.Next
 	config.Previous = locationResponse.Previous
+}
+
+func explorePokemonLocation(config *Config) {
+	location := config.ExploreLocation
+	config.ExploreLocation = fmt.Sprintf("https://pokeapi.co/api/v2/location-area/%s", location)
+	fmt.Println("url----->", config.ExploreLocation)
+	locationResponse, err := httppokedex.GetPokemonLocation(config.ExploreLocation)
+	if err != nil {
+		fmt.Println("Error fetching previous locations:", err)
+		return
+	}
+
+	fmt.Println("Location Areas of Pokemon:")
+	for _, loc := range locationResponse.PokemonEncounter {
+		fmt.Println("-", loc.Pokemon.Name)
+	}
 }
 
 func commandExit(config *Config) {
