@@ -13,16 +13,15 @@ import (
 )
 
 type Config struct {
-	Next            string
-	Previous        string
-	Cache           *httppokedex.Cache
-	ExploreLocation string
+	Next     string
+	Previous string
+	Cache    *httppokedex.Cache
 }
 
 type cliCommand struct {
 	name        string
 	description string
-	callback    func(*Config)
+	callback    func(*Config, ...string)
 }
 
 var commandsMap map[string]cliCommand
@@ -34,7 +33,33 @@ func main() {
 		Previous: "",
 		Cache:    httppokedex.NewCache(10 * time.Second),
 	}
-	commandsMap = map[string]cliCommand{
+
+	for {
+		fmt.Print("Pokedex> ")
+		if scanner.Scan() {
+			text := scanner.Text()
+			if len(text) == 0 {
+				continue
+			}
+			part := cleanInput(text)
+			commandName := part[0]
+			args := []string{}
+			if len(part) > 1 {
+				args = part[1:]
+			}
+			command, exists := getCommand()[commandName]
+			if exists {
+				command.callback(config, args...)
+				continue
+			} else {
+				fmt.Println("Unknown command. Type 'help' for available commands.")
+			}
+		}
+	}
+}
+
+func getCommand() map[string]cliCommand {
+	return map[string]cliCommand{
 		"exit": {
 			name:        "exit",
 			description: "Exit the Pokedex",
@@ -53,25 +78,7 @@ func main() {
 		"map":     {"map", "Displays the next 20 locations", mapLocation},
 		"mapb":    {"mapb", "Displays the previous 20 locations", mapPreviousLocation},
 		"explore": {"explore", "Displays list of all the Pokémon located there", explorePokemonLocation},
-	}
-	for {
-		fmt.Print("Pokedex> ")
-		if scanner.Scan() {
-			text := scanner.Text()
-			if len(text) == 0 {
-				continue
-			}
-			part := cleanInput(text)
-			command := part[0]
-			if cmd, found := commandsMap[command]; found {
-				if command == "explore" && len(part) > 1 {
-					config.ExploreLocation = part[1]
-				}
-				cmd.callback(config)
-			} else {
-				fmt.Println("Unknown command. Type 'help' for available commands.")
-			}
-		}
+		"catch":   {"catch", "It's time to catch some pokemon!", catchPokemon},
 	}
 }
 
@@ -81,11 +88,11 @@ func cleanInput(input string) []string {
 	return inputArr
 }
 
-func mapLocation(config *Config) {
+func mapLocation(config *Config, args ...string) {
 	fetchAndDisplayLocations(config.Next, config)
 }
 
-func mapPreviousLocation(config *Config) {
+func mapPreviousLocation(config *Config, args ...string) {
 	fetchAndDisplayLocations(config.Previous, config)
 }
 
@@ -110,27 +117,43 @@ func fetchAndDisplayLocations(url string, config *Config) {
 	config.Previous = locationResponse.Previous
 }
 
-func explorePokemonLocation(config *Config) {
-	config.ExploreLocation = fmt.Sprintf("https://pokeapi.co/api/v2/location-area/%s", config.ExploreLocation)
-	fmt.Println("url----->", config.ExploreLocation)
-	locationResponse, err := httppokedex.GetPokemonLocation(config.ExploreLocation, config.Cache)
+func explorePokemonLocation(config *Config, args ...string) {
+	if len(args) != 1 {
+		fmt.Println("you must provide a location name")
+		return
+	}
+
+	name := args[0]
+	url := fmt.Sprintf("https://pokeapi.co/api/v2/location-area/%s", name)
+	fmt.Println("url----->", url)
+	locationResponse, err := httppokedex.GetPokemonLocation(url, config.Cache)
 	if err != nil {
 		fmt.Println("Error fetching locations of Pokemon:", err)
 		return
 	}
 
-	fmt.Println("Location Areas of Pokemon:")
+	fmt.Println("Found Pokemon...")
 	for _, loc := range locationResponse.PokemonEncounter {
 		fmt.Println("-", loc.Pokemon.Name)
 	}
 }
+func catchPokemon(config *Config, args ...string) {
+	if len(args) != 1 {
+		fmt.Println("you must provide a location name")
+		return
+	}
 
-func commandExit(config *Config) {
+	name := args[0]
+	url := fmt.Sprintf("https://pokeapi.co/api/v2/pikachu/%s", name)
+	fmt.Println(url)
+}
+
+func commandExit(config *Config, args ...string) {
 	fmt.Println("Closing the Pokedex... Goodbye!")
 	os.Exit(0)
 }
 
-func commandClearScreen(config *Config) {
+func commandClearScreen(config *Config, args ...string) {
 	var cmd *exec.Cmd
 	if runtime.GOOS == "windows" {
 		cmd = exec.Command("cmd", "/c", "cls")
@@ -141,8 +164,8 @@ func commandClearScreen(config *Config) {
 	cmd.Run()
 }
 
-func commandHelp(config *Config) {
-	fmt.Println("Welcome to the Pokedex!\nUsage:k")
+func commandHelp(config *Config, args ...string) {
+	fmt.Println("Welcome to the Pokedex!\nUsage:")
 	for key, value := range commandsMap {
 		fmt.Println(key, " ", value.description)
 	}
