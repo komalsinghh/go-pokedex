@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"math/rand"
 	"os"
 	"os/exec"
 	"runtime"
@@ -139,13 +140,24 @@ func explorePokemonLocation(config *Config, args ...string) {
 }
 func catchPokemon(config *Config, args ...string) {
 	if len(args) != 1 {
-		fmt.Println("you must provide a location name")
+		fmt.Println("you must provide a pokemon name")
 		return
 	}
 
 	name := args[0]
-	url := fmt.Sprintf("https://pokeapi.co/api/v2/pikachu/%s", name)
+	url := fmt.Sprintf("https://pokeapi.co/api/v2/pokemon/%s", name)
 	fmt.Println(url)
+	fmt.Printf("Throwing a Pokeball at %s...\n", name)
+	catchPokemon, err := httppokedex.GetCatchPokemon(url)
+	if err != nil {
+		fmt.Println("An error occured, %w", err)
+	}
+	res := rand.Intn(catchPokemon.BaseExperience)
+	if res > 40 {
+		fmt.Printf("%s escaped!\n", name)
+	} else {
+		fmt.Printf("%s was caught!\n", name)
+	}
 }
 
 func commandExit(config *Config, args ...string) {
