@@ -17,6 +17,7 @@ type Config struct {
 	Next     string
 	Previous string
 	Cache    *httppokedex.Cache
+	Pokedex  map[string]httppokedex.Pokemon
 }
 
 type cliCommand struct {
@@ -33,6 +34,7 @@ func main() {
 		Next:     "https://pokeapi.co/api/v2/location-area?offset=0&limit=20",
 		Previous: "",
 		Cache:    httppokedex.NewCache(10 * time.Second),
+		Pokedex:  make(map[string]httppokedex.Pokemon),
 	}
 
 	for {
@@ -79,7 +81,8 @@ func getCommand() map[string]cliCommand {
 		"map":     {"map", "Displays the next 20 locations", mapLocation},
 		"mapb":    {"mapb", "Displays the previous 20 locations", mapPreviousLocation},
 		"explore": {"explore", "Displays list of all the Pokémon located there", explorePokemonLocation},
-		"catch":   {"catch", "It's time to catch some pokemon!", catchPokemon},
+		"catch":   {"catch", "Try to catch a Pokémon", catchPokemon},
+		"pokedex": {"pokedex", "Displays your caught Pokémon", showPokedex},
 	}
 }
 
@@ -127,15 +130,15 @@ func explorePokemonLocation(config *Config, args ...string) {
 	name := args[0]
 	url := fmt.Sprintf("https://pokeapi.co/api/v2/location-area/%s", name)
 	fmt.Println("url----->", url)
-	locationResponse, err := httppokedex.GetPokemonLocation(url, config.Cache)
+	pokemonEncounterResult, err := httppokedex.GetPokemonLocation(url, config.Cache)
 	if err != nil {
 		fmt.Println("Error fetching locations of Pokemon:", err)
 		return
 	}
 
 	fmt.Println("Found Pokemon...")
-	for _, loc := range locationResponse.PokemonEncounter {
-		fmt.Println("-", loc.Pokemon.Name)
+	for _, res := range pokemonEncounterResult.PokemonEncounter {
+		fmt.Println("-", res.Pokemon.Name)
 	}
 }
 func catchPokemon(config *Config, args ...string) {
@@ -145,18 +148,34 @@ func catchPokemon(config *Config, args ...string) {
 	}
 
 	name := args[0]
+
+	if _, exists := config.Pokedex[name]; exists {
+		fmt.Printf("%v already caught", name)
+		return
+	}
+
 	url := fmt.Sprintf("https://pokeapi.co/api/v2/pokemon/%s", name)
 	fmt.Println(url)
 	fmt.Printf("Throwing a Pokeball at %s...\n", name)
 	catchPokemon, err := httppokedex.GetCatchPokemon(url)
 	if err != nil {
-		fmt.Println("An error occured, %w", err)
+		fmt.Println("An error occured ", err)
+		return
 	}
+
 	res := rand.Intn(catchPokemon.BaseExperience)
 	if res > 40 {
 		fmt.Printf("%s escaped!\n", name)
 	} else {
 		fmt.Printf("%s was caught!\n", name)
+		config.Pokedex[name] = httppokedex.Pokemon{Name: name}
+	}
+}
+
+func showPokedex(config *Config, args ...string) {
+	fmt.Println("Your Pokedex:")
+	for _, value := range config.Pokedex {
+		fmt.Printf(" - %v\n", value.Name)
 	}
 }
 
