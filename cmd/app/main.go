@@ -151,7 +151,7 @@ func catchPokemon(config *Config, args ...string) {
 	name := args[0]
 
 	if _, exists := config.Pokedex[name]; exists {
-		fmt.Printf("%v already caught", name)
+		fmt.Printf("%v already caught\n", name)
 		return
 	}
 
@@ -170,6 +170,7 @@ func catchPokemon(config *Config, args ...string) {
 	} else {
 		fmt.Printf("%s was caught!\n", name)
 		config.Pokedex[name] = catchPokemon
+		fmt.Println("You may now inspect it with the inspect command.")
 	}
 }
 
