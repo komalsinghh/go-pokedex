@@ -1,4 +1,4 @@
-# Go Pokedex
+# Pokedex CLI
 
 Go Pokedex is a command-line application that allows users to explore Pokémon locations, catch Pokémon, and manage their own Pokedex. It interacts with the [PokéAPI](https://pokeapi.co/) to fetch data about Pokémon and their habitats.
 
@@ -44,7 +44,14 @@ Go Pokedex is a command-line application that allows users to explore Pokémon l
     ```bash
     go run main.go
     ```
-
+4. Build the project:
+```bash
+go build -o pokedex-cli ./cmd/main.go
+```
+5. Run the application:
+```bash
+./pokedex-cli
+```
 ## Usage
 
 Once the application is running, you can type any of the commands listed above to interact with the Pokedex. For example:
@@ -92,11 +99,7 @@ Contributions are welcome! Please follow these steps:
     ```
 5. Open a pull request.
 
-## License
-
-This project is licensed under the [MIT License](LICENSE).
-
 ## Acknowledgments
 
 - [PokéAPI](https://pokeapi.co/) for providing Pokémon data.
-- The Go community for their excellent resources and support.
+- [boot.dev](https://www.boot.dev) for providing the foundation and resources that contributed to the development of this project.
