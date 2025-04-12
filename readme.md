@@ -31,7 +31,7 @@ Go Pokedex is a command-line application that allows users to explore Pokémon l
 
 1. Clone the repository:
     ```bash
-    git clone https://github.com/your-username/go-pokedex.git
+    git clone https://github.com/komalsinghh/go-pokedex.git
     cd go-pokedex
     ```
 
